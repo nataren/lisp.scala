@@ -20,21 +20,37 @@
 // IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import scala.util.parsing.combinator._
+import scala.collection.mutable._
+
+abstract class Expr
+case class Exprs(members: List[Expr]) extends Expr
+case class Symbol(name: String) extends Expr
+case class Number(num: Double) extends Expr
 
 class LispParser extends RegexParsers {
-	def expr: Parser[Any] = symbol | "("~>rep1(expr, expr)<~")"
-	def symbol: Parser[Any] = """\w+""".r | """\d+""".r
+	def expr: Parser[Expr] = symbol | ("("~>rep1(expr, expr)<~")" ^^ { x => Exprs(x) })
+	def symbol: Parser[Expr] = ("""\d+""".r ^^ { x => Number(x.toDouble) }) | ("""\w+""".r ^^ { x => Symbol(x) })
+	def parse(program: String): Expr = parseAll(expr, program).get
 }
 
 class LispInterpreter {
-	def eval(program: List[Any], Map[String, Any]) {
-		
+	def atom(expr: Expr): Boolean = expr match {
+		case Number(_) => true
+		case Symbol(_) => true
+		case _ => false
+	}
+	
+	def eq(x: Expr, y: Expr): Boolean = atom(x) && atom(y) && x == y
+	
+	def eval(expr: Expr): Any = eval(expr, new HashMap[Symbol, Expr])
+	
+	def eval(expr: Expr, env: HashMap[Symbol, Expr]): Any = expr match {
+		case Number(n) => n
+		case _ =>
 	}
 }
 
-object LispParser extends LispParser {
-	def main(args: Array[String]) {
-		println("input: " + args(0))
-		println(parseAll(Expr, args(0)))
-	}
-}
+val i = new LispInterpreter
+val p = new LispParser
+i.eq(p.parse("hola"), p.parse("hola"))
+i.eq(p.parse("hola"), p.parse("hola1"))
